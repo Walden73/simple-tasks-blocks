@@ -42,6 +42,6 @@
   "confirmTaskDeletion": true,
   "dateFormat": "Automatic",
   "sharedFilePath": "/Users/walden/Documents/hhhj.json",
-  "activeContext": "shared",
-  "futureTasksCount": 14
+  "activeContext": "local",
+  "futureTasksCount": 3
 }

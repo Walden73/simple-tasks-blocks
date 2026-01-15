@@ -1,4 +1,11 @@
-node_modules
+node_modules/
 .DS_Store
 main.js
+styles.css
 manifest.json
+.trae/
+*.json
+!manifest.json
+!package.json
+!package-lock.json
+!tsconfig.json

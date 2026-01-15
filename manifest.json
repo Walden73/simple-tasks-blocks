@@ -1,0 +1,9 @@
+{  "id": "simple-tasks-blocks",
+  "name": "Simple Tasks Blocks",
+  "version": "1.0.0",
+  "minAppVersion": "1.0.0",
+  "description": "Standalone task manager in the sidebar. Features local or shared storage for cross-vault sync, categories blocks, due dates and recurring tasks. Supports EN, FR, IT, ES, and DE.",
+  "author": "Franck Walden",
+  "authorUrl": "https://github.com/Walden73",
+  "isDesktopOnly": false
+}
