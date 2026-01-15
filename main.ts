@@ -1,6 +1,6 @@
 import { App, Plugin, PluginSettingTab, Setting, WorkspaceLeaf, ItemView, Modal, Notice, setIcon, Menu, moment } from 'obsidian';
 import * as fs from 'fs';
-import { t } from './l10n';
+import { t, MESSAGES } from './l10n';
 
 // --- Interfaces ---
 
@@ -32,6 +32,15 @@ interface SimpleTasksBlocksSettings {
 	sharedFilePath?: string;
 	activeContext: 'local' | 'shared';
 	futureTasksCount: number;
+}
+
+interface ElectronRemote {
+	dialog: {
+		showSaveDialog: (options: { filters: { name: string; extensions: string[] }[] }) => Promise<{ canceled: boolean; filePath?: string }>;
+		showOpenDialog: (options: { properties: string[]; filters: { name: string; extensions: string[] }[] }) => Promise<{ canceled: boolean; filePaths: string[] }>;
+	};
+	default?: ElectronRemote;
+	remote?: ElectronRemote;
 }
 
 const DEFAULT_SETTINGS: SimpleTasksBlocksSettings = {
@@ -120,7 +129,7 @@ export default class SimpleTasksBlocksPlugin extends Plugin {
 		if (this.settings.sharedFilePath) {
 			try {
 				fs.unwatchFile(this.settings.sharedFilePath);
-			} catch (e) {
+			} catch {
 				// Ignore
 			}
 		}
@@ -196,10 +205,8 @@ export default class SimpleTasksBlocksPlugin extends Plugin {
 						const diskTasks = diskCat.tasks;
 
 						const mergedTasks = diskTasks.map(dt => {
-							if (localTasksMap.has(dt.id)) {
-								const localTask = localTasksMap.get(dt.id);
-								if (localTask) return localTask;
-							}
+							const localTask = localTasksMap.get(dt.id);
+							if (localTask) return localTask;
 							return dt;
 						});
 
@@ -253,13 +260,13 @@ export default class SimpleTasksBlocksPlugin extends Plugin {
 			try {
 				if (fs.existsSync(this.settings.sharedFilePath)) {
 					const content = fs.readFileSync(this.settings.sharedFilePath, 'utf8');
-					const data = JSON.parse(content);
+					const data = JSON.parse(content) as { categories: Category[] };
 					const categories = data.categories || [];
 
 					let changed = false;
-					categories.forEach((c: any) => {
+					categories.forEach((c) => {
 						const originalLength = c.tasks.length;
-						c.tasks = c.tasks.filter((t: any) => !t.completed);
+						c.tasks = c.tasks.filter((t) => !t.completed);
 						if (c.tasks.length !== originalLength) changed = true;
 					});
 
@@ -365,11 +372,11 @@ export default class SimpleTasksBlocksPlugin extends Plugin {
 			try {
 				if (fs.existsSync(this.settings.sharedFilePath)) {
 					const content = fs.readFileSync(this.settings.sharedFilePath, 'utf8');
-					const data = JSON.parse(content);
+					const data = JSON.parse(content) as { categories: Category[] };
 					let categories = data.categories || [];
 
 					const initialLength = categories.length;
-					categories = categories.filter((c: any) => c.id !== categoryId);
+					categories = categories.filter((c) => c.id !== categoryId);
 
 					if (categories.length !== initialLength) {
 						const newData = { categories: categories };
@@ -411,12 +418,12 @@ export default class SimpleTasksBlocksPlugin extends Plugin {
 			try {
 				if (fs.existsSync(this.settings.sharedFilePath)) {
 					const content = fs.readFileSync(this.settings.sharedFilePath, 'utf8');
-					const data = JSON.parse(content);
+					const data = JSON.parse(content) as { categories: Category[] };
 					const categories = data.categories || [];
 
 					const category = categories.find((c: Category) => c.id === categoryId);
 					if (category) {
-						category.tasks = category.tasks.filter((t: any) => t.id !== taskId);
+						category.tasks = category.tasks.filter((t) => t.id !== taskId);
 						const newData = { categories: categories };
 						fs.writeFileSync(this.settings.sharedFilePath, JSON.stringify(newData, null, 2));
 						this.refreshViews();
@@ -475,18 +482,18 @@ class SimpleTasksBlocksSettingTab extends PluginSettingTab {
 			.addButton(btn => btn
 				.setButtonText(t('BTN_BROWSE'))
 				.setTooltip(t('TIP_SELECT_FILE'))
-				.onClick(async () => {
+				.onClick(() => {
 					try {
 						const input = document.createElement('input');
 						input.type = 'file';
 						input.accept = '.json';
-						input.style.display = 'none';
+						input.setCssProps({ display: 'none' });
 						document.body.appendChild(input);
 
 						input.onchange = async () => {
 							if (input.files && input.files.length > 0) {
 								const file = input.files[0];
-								const filePath = (file as any).path;
+								const filePath = (file as File & { path: string }).path;
 
 								if (filePath) {
 									this.plugin.settings.sharedFilePath = filePath;
@@ -515,13 +522,16 @@ class SimpleTasksBlocksSettingTab extends PluginSettingTab {
 				.setTooltip(t('TIP_CREATE_FILE'))
 				.onClick(async () => {
 					try {
-						let remote: any;
+						let remote: ElectronRemote | undefined;
 						try {
-							remote = await import('@electron/remote');
-							if (remote && remote.default) remote = remote.default;
+							const imported = await import('@electron/remote');
+							const moduleData = imported as Record<string, unknown>;
+							remote = (moduleData.default || imported) as ElectronRemote;
 						} catch {
-							const electron: any = await import('electron');
-							remote = electron.remote || (electron.default && electron.default.remote);
+							const electron = await import('electron');
+							const electronModule = electron as Record<string, unknown>;
+							const defaultExport = electronModule.default as Record<string, unknown> | undefined;
+							remote = (electronModule.remote || defaultExport?.remote) as ElectronRemote;
 						}
 
 						if (!remote) throw new Error("Electron remote not available");
@@ -631,12 +641,14 @@ class TasksView extends ItemView {
 			localBtn.addClass('is-active');
 		}
 
-		localBtn.addEventListener('click', async () => {
-			if (this.plugin.settings.activeContext !== 'local') {
-				this.plugin.settings.activeContext = 'local';
-				await this.plugin.saveSettings();
-				this.refresh();
-			}
+		localBtn.addEventListener('click', () => {
+			(async () => {
+				if (this.plugin.settings.activeContext !== 'local') {
+					this.plugin.settings.activeContext = 'local';
+					await this.plugin.saveSettings();
+					this.refresh();
+				}
+			})();
 		});
 
 		const sharedBtn = switcher.createEl('div', { cls: 'stb-context-btn' });
@@ -648,16 +660,18 @@ class TasksView extends ItemView {
 			sharedBtn.addClass('is-active');
 		}
 
-		sharedBtn.addEventListener('click', async () => {
-			if (this.plugin.settings.activeContext !== 'shared') {
-				if (!this.plugin.settings.sharedFilePath) {
-					new SharedSetupModal(this.app, this.plugin).open();
-					return;
+		sharedBtn.addEventListener('click', () => {
+			(async () => {
+				if (this.plugin.settings.activeContext !== 'shared') {
+					if (!this.plugin.settings.sharedFilePath) {
+						new SharedSetupModal(this.app, this.plugin).open();
+						return;
+					}
+					this.plugin.settings.activeContext = 'shared';
+					await this.plugin.saveSettings();
+					this.refresh();
 				}
-				this.plugin.settings.activeContext = 'shared';
-				await this.plugin.saveSettings();
-				this.refresh();
-			}
+			})();
 		});
 
 		const reloadBtn = switcher.createEl('div', { cls: 'stb-context-btn stb-reload-btn stb-sync-icon' });
@@ -775,7 +789,7 @@ class TasksView extends ItemView {
 			});
 			menu.addSeparator();
 			Object.keys(COLOR_VALUES).forEach((colorName) => {
-				const displayColorName = t(`COLOR_${colorName.toUpperCase()}` as any);
+				const displayColorName = t(`COLOR_${colorName.toUpperCase()}` as keyof typeof MESSAGES['en']);
 				menu.addItem((item) => {
 					item.setTitle(displayColorName)
 						.setChecked(category.color === COLOR_VALUES[colorName as keyof typeof COLOR_VALUES])
@@ -848,7 +862,7 @@ class TasksView extends ItemView {
 				inlineContainer.empty();
 
 				const wrapper = inlineContainer.createEl('div', { cls: 'stb-inline-input-wrapper' });
-				wrapper.style.position = 'relative';
+				wrapper.setCssProps({ position: 'relative' });
 
 				const input = wrapper.createEl('input', { type: 'text', placeholder: t('INPUT_NEW_TASK') });
 				input.focus();
@@ -863,10 +877,12 @@ class TasksView extends ItemView {
 					e.stopPropagation();
 					const btnRect = dateBtn.getBoundingClientRect();
 					const wrapperRect = wrapper.getBoundingClientRect();
-					dateInput.style.position = 'absolute';
-					dateInput.style.top = `${btnRect.bottom - wrapperRect.top + 4}px`;
-					dateInput.style.left = `${btnRect.left - wrapperRect.left}px`;
-					dateInput.style.zIndex = '1000';
+					dateInput.setCssProps({
+						position: 'absolute',
+						top: `${btnRect.bottom - wrapperRect.top + 4}px`,
+						left: `${btnRect.left - wrapperRect.left}px`,
+						'z-index': '1000'
+					});
 					dateInput.show();
 					if ('showPicker' in HTMLInputElement.prototype) {
 						try { (dateInput as HTMLInputElement & { showPicker(): void }).showPicker(); } catch { dateInput.focus(); }
@@ -974,27 +990,31 @@ class TasksView extends ItemView {
 				const recurIcon = rightActions.createEl('div', { cls: 'stb-recurrence-icon clickable-icon' });
 				setIcon(recurIcon, 'calendar-cog');
 
-				recurIcon.style.color = 'var(--text-accent)';
-				recurIcon.style.marginRight = '4px';
-				recurIcon.style.display = 'inline-flex';
-				recurIcon.style.alignItems = 'center';
+				recurIcon.setCssProps({
+					color: 'var(--text-accent)',
+					'margin-right': '4px',
+					display: 'inline-flex',
+					'align-items': 'center'
+				});
 
 				recurIcon.addEventListener('click', (e) => {
 					e.stopPropagation();
-					new FutureOccurrencesModal(this.app, task, this.plugin.settings.futureTasksCount, async (updatedTask) => {
-						Object.assign(task, updatedTask);
-						const categories = this.plugin.getCategories();
-						const currentCat = categories.find(c => c.id === category.id);
-						if (currentCat) {
-							const currentTask = currentCat.tasks.find(t => t.id === task.id);
-							if (currentTask) {
-								Object.assign(currentTask, updatedTask);
+					new FutureOccurrencesModal(this.app, task, this.plugin.settings.futureTasksCount, (updatedTask) => {
+						(async () => {
+							Object.assign(task, updatedTask);
+							const categories = this.plugin.getCategories();
+							const currentCat = categories.find(c => c.id === category.id);
+							if (currentCat) {
+								const currentTask = currentCat.tasks.find(t => t.id === task.id);
+								if (currentTask) {
+									Object.assign(currentTask, updatedTask);
+									await this.plugin.saveCategories(categories);
+								}
+							} else {
 								await this.plugin.saveCategories(categories);
 							}
-						} else {
-							await this.plugin.saveCategories(categories);
-						}
-						this.refresh();
+							this.refresh();
+						})();
 					}).open();
 				});
 			}
@@ -1015,10 +1035,12 @@ class TasksView extends ItemView {
 		deleteBtn.addEventListener('click', (e) => {
 			e.stopPropagation();
 			if (this.plugin.settings.confirmTaskDeletion) {
-				new ConfirmModal(this.app, t('CONFIRM_DELETE_TASK'), async () => {
-					await this.plugin.deleteTask(category.id, task.id, this.plugin.settings.activeContext === 'shared');
-					this.refresh();
-				}).open();
+				new ConfirmModal(this.app, t('CONFIRM_DELETE_TASK'), () => {
+    (async () => {
+        await this.plugin.deleteTask(category.id, task.id, this.plugin.settings.activeContext === 'shared');
+        this.refresh();
+    })();
+}).open();
 			} else {
 				void (async () => {
 					await this.plugin.deleteTask(category.id, task.id, this.plugin.settings.activeContext === 'shared');
@@ -1040,23 +1062,25 @@ class TasksView extends ItemView {
 
 		dateEditBtn.addEventListener('click', (e) => {
 			e.stopPropagation();
-			new TaskDateModal(this.app, task, async (updatedData) => {
-				Object.assign(task, updatedData);
-				const categories = this.plugin.getCategories();
-				const currentCat = categories.find(c => c.id === category.id);
-				if (currentCat) {
-					const currentTask = currentCat.tasks.find(t => t.id === task.id);
-					if (currentTask) {
-						currentTask.dueDate = task.dueDate;
-						currentTask.recurrenceType = task.recurrenceType;
-						currentTask.recurrenceValue = task.recurrenceValue;
-						currentTask.recurrenceUntil = task.recurrenceUntil;
-						currentTask.recurrenceExdates = task.recurrenceExdates;
-						await this.plugin.saveCategories(categories);
-					}
-				}
-				this.refresh();
-			}).open();
+			new TaskDateModal(this.app, task, (updatedData) => {
+    (async () => {
+        Object.assign(task, updatedData);
+        const categories = this.plugin.getCategories();
+        const currentCat = categories.find(c => c.id === category.id);
+        if (currentCat) {
+            const currentTask = currentCat.tasks.find(t => t.id === task.id);
+            if (currentTask) {
+                currentTask.dueDate = task.dueDate;
+                currentTask.recurrenceType = task.recurrenceType;
+                currentTask.recurrenceValue = task.recurrenceValue;
+                currentTask.recurrenceUntil = task.recurrenceUntil;
+                currentTask.recurrenceExdates = task.recurrenceExdates;
+                await this.plugin.saveCategories(categories);
+            }
+        }
+        this.refresh();
+    })();
+}).open();
 		});
 	}
 
@@ -1169,7 +1193,6 @@ class TasksView extends ItemView {
 						case 'custom_days': nextDate.add(value, 'days'); break;
 					}
 
-					const nextDateStr = nextDate.format('YYYY-MM-DD');
 					let loopGuard = 0;
 					while (task.recurrenceExdates && task.recurrenceExdates.includes(nextDate.format('YYYY-MM-DD')) && loopGuard < 100) {
 						switch (task.recurrenceType) {
@@ -1338,11 +1361,13 @@ class FutureOccurrencesModal extends Modal {
 			safety++;
 
 			const row = listContainer.createDiv({ cls: 'stb-future-item' });
-			row.style.display = 'flex';
-			row.style.justifyContent = 'space-between';
-			row.style.alignItems = 'center';
-			row.style.padding = '8px 0';
-			row.style.borderBottom = '1px solid var(--background-modifier-border)';
+			row.setCssProps({
+				display: 'flex',
+				'justify-content': 'space-between',
+				'align-items': 'center',
+				padding: '8px 0',
+				'border-bottom': '1px solid var(--background-modifier-border)'
+			});
 
 			const dateText = nextDate.format('dddd LL');
 			const capitalizedDateText = dateText.charAt(0).toUpperCase() + dateText.slice(1);
@@ -1367,10 +1392,12 @@ class FutureOccurrencesModal extends Modal {
 		}
 
 		const footer = contentEl.createDiv({ cls: 'stb-future-footer' });
-		footer.style.marginTop = '15px';
-		footer.style.fontStyle = 'italic';
-		footer.style.color = 'var(--text-muted)';
-		footer.style.marginBottom = '20px';
+		footer.setCssProps({
+			'margin-top': '15px',
+			'font-style': 'italic',
+			color: 'var(--text-muted)',
+			'margin-bottom': '20px'
+		});
 
 		if (found === maxDisplay) {
 			if (this.task.recurrenceUntil) {
@@ -1414,12 +1441,14 @@ class FutureOccurrencesModal extends Modal {
 		}
 
 		const stopBtnContainer = contentEl.createDiv({ cls: 'stb-stop-recurrence-container' });
-		stopBtnContainer.style.display = 'flex';
-		stopBtnContainer.style.justifyContent = 'center';
-		stopBtnContainer.style.marginTop = '10px';
+		stopBtnContainer.setCssProps({
+			display: 'flex',
+			'justify-content': 'center',
+			'margin-top': '10px'
+		});
 
 		const stopBtn = stopBtnContainer.createEl('button', { text: t('BTN_STOP_RECURRENCE'), cls: "mod-warning" });
-		stopBtn.style.width = '100%';
+		stopBtn.setCssProps({ width: '100%' });
 
 		stopBtn.addEventListener('click', () => {
 			new ConfirmModal(this.app, t('CONFIRM_STOP_RECURRENCE'), () => {
@@ -1469,7 +1498,7 @@ class TaskDateModal extends Modal {
 			.setName(t('FIELD_DUE_DATE'))
 			.addText(text => text
 				.setValue(this.tempDate)
-				.setPlaceholder('YYYY-MM-DD')
+				.setPlaceholder('yyyy-mm-dd')
 				.onChange(value => {
 					this.tempDate = value;
 				})
@@ -1486,7 +1515,7 @@ class TaskDateModal extends Modal {
 				.addOption('custom_days', t('REC_CUSTOM'))
 				.setValue(this.tempRecurType)
 				.onChange(value => {
-					this.tempRecurType = value as any;
+					this.tempRecurType = value as 'none' | 'daily' | 'weekly' | 'monthly' | 'custom_days';
 					this.displayCustomValueField(valueField, value);
 				})
 			);
@@ -1524,7 +1553,7 @@ class TaskDateModal extends Modal {
 			.setName(t('MODAL_END_DATE'))
 			.addText(text => text
 				.setValue(this.tempRecurUntil)
-				.setPlaceholder('YYYY-MM-DD')
+				.setPlaceholder('yyyy-mm-dd')
 				.onChange(value => {
 					this.tempRecurUntil = value;
 				})
@@ -1534,7 +1563,7 @@ class TaskDateModal extends Modal {
 		this.displayUntilField(untilDateField, this.tempUntilMode);
 
 		const buttonDiv = contentEl.createDiv({ cls: 'stb-modal-actions' });
-		buttonDiv.style.marginTop = '20px';
+		buttonDiv.setCssProps({ 'margin-top': '20px' });
 
 		const saveBtn = new Setting(buttonDiv)
 			.addButton(btn => btn
@@ -1568,8 +1597,10 @@ class TaskDateModal extends Modal {
 				})
 			);
 
-		saveBtn.settingEl.style.border = 'none';
-		saveBtn.settingEl.style.justifyContent = 'flex-end';
+		saveBtn.settingEl.setCssProps({
+			border: 'none',
+			'justify-content': 'flex-end'
+		});
 	}
 
 	displayCustomValueField(setting: Setting, type: string) {
@@ -1656,10 +1687,10 @@ class SharedSetupModal extends Modal {
 		const pathInput = pathDiv.createEl("input", { type: "text" });
 		pathInput.value = this.plugin.settings.sharedFilePath || '';
 		pathInput.disabled = true;
-		pathInput.style.width = '100%';
+		pathInput.setCssProps({ width: '100%' });
 
 		const buttonDiv = contentEl.createDiv({ cls: 'stb-modal-actions' });
-		buttonDiv.style.marginTop = '10px';
+		buttonDiv.setCssProps({ 'margin-top': '10px' });
 
 		const browseBtn = buttonDiv.createEl("button", { text: t('BTN_BROWSE'), cls: "mod-cta" });
 		const createBtn = buttonDiv.createEl("button", { text: t('BTN_CREATE_NEW') });
@@ -1674,76 +1705,96 @@ class SharedSetupModal extends Modal {
 			new Notice(t('NOTICE_SHARED_ENABLED', filePath));
 		};
 
-		browseBtn.addEventListener("click", async () => {
-			try {
-				let remote: any;
-				try {
-					remote = await import('@electron/remote');
-					if (remote && remote.default) remote = remote.default;
-				} catch {
-					const electron: any = await import('electron');
-					remote = electron.remote || (electron.default && electron.default.remote);
-				}
+		browseBtn.addEventListener("click", () => {
+    (async () => {
+        try {
+            let remote: ElectronRemote | null = null;
+            try {
+                const imported = await import('@electron/remote') as unknown as Record<string, unknown>;
+                remote = (imported.default || imported) as ElectronRemote;
+            } catch {
+                try {
+                    const electron = await import('electron') as unknown as Record<string, unknown>;
+                    const defaultExport = electron.default as Record<string, unknown> | undefined;
+                    remote = (electron.remote || defaultExport?.remote) as ElectronRemote;
+                } catch {
+                    remote = null;
+                }
+            }
 
-				if (!remote) {
-					throw new Error("Electron remote not available");
-				}
+            if (!remote) {
+                throw new Error("Electron remote not available");
+            }
 
-				const dialog = remote.dialog;
-				const result = await dialog.showOpenDialog({
-					properties: ['openFile'],
-					filters: [{ name: 'Fichiers de tâches (JSON)', extensions: ['json'] }]
-				});
+            const dialog = remote.dialog;
+            const result = await dialog.showOpenDialog({
+                properties: ['openFile'],
+                filters: [{ name: 'Fichiers de tâches (JSON)', extensions: ['json'] }]
+            });
 
-				if (!result.canceled && result.filePaths.length > 0) {
-					await handleFileSelection(result.filePaths[0]);
-				}
+            if (!result.canceled && result.filePaths.length > 0) {
+                await handleFileSelection(result.filePaths[0]);
+            }
 
-			} catch {
-				new Notice(t('ERR_PICKER'));
-				pathInput.disabled = false;
-				pathInput.focus();
+        } catch (e) {
+            new Notice(t('ERR_PICKER'));
+            pathInput.disabled = false;
+            pathInput.focus();
 
-				browseBtn.setText(t('BTN_SAVE_PATH'));
-				browseBtn.replaceWith(browseBtn.cloneNode(true));
-				const newSaveBtn = buttonDiv.querySelector("button.mod-cta") as HTMLButtonElement;
+            browseBtn.setText(t('BTN_SAVE_PATH'));
+            const clonedBtn = browseBtn.cloneNode(true) as HTMLButtonElement;
+            browseBtn.replaceWith(clonedBtn);
+            
+            const newSaveBtn = buttonDiv.querySelector("button.mod-cta") as HTMLButtonElement;
+            if (newSaveBtn) {
+                newSaveBtn.addEventListener("click", () => {
+    (async () => {
+        if (pathInput.value) {
+            await handleFileSelection(pathInput.value);
+        }
+    })();
+});
+            }
+        }
+    })();
+});
 
-				newSaveBtn.addEventListener("click", async () => {
-					if (pathInput.value) {
-						await handleFileSelection(pathInput.value);
-					}
-				});
-			}
-		});
+		createBtn.addEventListener("click", () => {
+    (async () => {
+        try {
+            let remote: ElectronRemote | null = null;
+            try {
+                const imported = await import('@electron/remote') as unknown as Record<string, unknown>;
+                remote = (imported.default || imported) as ElectronRemote;
+            } catch {
+                try {
+                    const electron = await import('electron') as unknown as Record<string, unknown>;
+                    const defaultExport = electron.default as Record<string, unknown> | undefined;
+                    remote = (electron.remote || defaultExport?.remote) as ElectronRemote;
+                } catch {
+                    remote = null;
+                }
+            }
 
-		createBtn.addEventListener("click", async () => {
-			try {
-				let remote: any;
-				try {
-					remote = await import('@electron/remote');
-					if (remote && remote.default) remote = remote.default;
-				} catch {
-					const electron: any = await import('electron');
-					remote = electron.remote || (electron.default && electron.default.remote);
-				}
+            if (!remote) {
+                throw new Error("Electron remote not available");
+            }
 
-				if (!remote) {
-					throw new Error("Electron remote not available");
-				}
+            const dialog = remote.dialog;
+            const result = await dialog.showSaveDialog({
+                filters: [{ name: 'Fichiers de tâches (JSON)', extensions: ['json'] }]
+            });
 
-				const dialog = remote.dialog;
-				const result = await dialog.showSaveDialog({
-					filters: [{ name: 'Fichiers de tâches (JSON)', extensions: ['json'] }]
-				});
-
-				if (!result.canceled && result.filePath) {
-					fs.writeFileSync(result.filePath, JSON.stringify({ categories: [] }, null, 2));
-					await handleFileSelection(result.filePath);
-				}
-			} catch (e) {
-				new Notice(t('ERR_CREATE_FILE', String(e)));
-			}
-		});
+            if (!result.canceled && result.filePath) {
+                const fs = await import('fs');
+                fs.writeFileSync(result.filePath, JSON.stringify({ categories: [] }, null, 2));
+                await handleFileSelection(result.filePath);
+            }
+        } catch (e) {
+            new Notice(t('ERR_CREATE_FILE', String(e)));
+        }
+    })();
+});
 
 		cancelBtn.addEventListener("click", () => {
 			this.close();

@@ -1,4 +1,4 @@
-const MESSAGES = {
+export const MESSAGES = {
   en: {
     COLOR_DEFAULT: "Default",
     COLOR_RED: "Red",
@@ -528,8 +528,9 @@ COLOR_GREY: "Gris",
 
 export const t = (key: keyof typeof MESSAGES['en'], ...args: string[]): string => {
   const lang = window.localStorage.getItem("language") || "en";
-  const locale = (MESSAGES as any)[lang] ? lang : "en";
-  let text = (MESSAGES as any)[locale][key] || MESSAGES["en"][key];
+  const messages = MESSAGES as Record<string, typeof MESSAGES['en']>;
+  const locale = messages[lang] ? lang : "en";
+  let text = messages[locale][key] || MESSAGES["en"][key];
   if (args.length > 0) {
     args.forEach(arg => text = text.replace("%s", arg));
   }
