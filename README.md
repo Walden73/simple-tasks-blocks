@@ -67,10 +67,24 @@ Real-time Sync: Any change made in one vault will now instantly reflect in all c
 
 ## Installation
 
+### Installation via BRAT (Advanced Version)
+Since this version of the plugin requires access to the system file system (to allow sharing tasks between different vaults or external folders), it is distributed as a Beta Plugin. It cannot be found on the official Obsidian Community Store due to security sandboxing restrictions.
+
+To install it, please follow these steps:
+
+1. Install BRAT: If you haven't already, install the Obsidian 42 - BRAT plugin from the official Community Plugins store.
+2. Open BRAT settings in Obsidian.
+3. Click on the Add Beta Plugin button.
+4. Paste the URL of this repository: https://github.com/Walden73/simple-tasks-blocks-advanced
+5. Click Add Plugin.
+6. Enable the Plugin
+
+Check for Updates: BRAT will automatically notify you or update the plugin when a new version is pushed to this repository.
+
 ### Manual installation
 
 1. Download `main.js`, `manifest.json`, and `styles.css` from the latest **release**.
-2. Create a folder named `simple-tasks-blocks` in your vault's `.obsidian/plugins/` directory.
+2. Create a folder named `simple-tasks-blocks-advanced` in your vault's `.obsidian/plugins/` directory.
 3. Move the downloaded files into that folder.
 4. Reload Obsidian and enable the plugin in the settings.
 
