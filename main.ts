@@ -558,8 +558,8 @@ class SimpleTasksBlocksSettingTab extends PluginSettingTab {
 			.setDesc(t('SETTING_DATE_FORMAT_DESC'))
 			.addDropdown(dropdown => dropdown
 				.addOption('Automatic', t('SETTING_DATE_AUTO'))
-			.addOption('YYYY-MM-DD', t('FMT_YEAR_MONTH_DAY'))
-			.addOption('DD-MM-YYYY', t('FMT_DAY_MONTH_YEAR'))
+				.addOption('YYYY-MM-DD', t('FMT_YEAR_MONTH_DAY'))
+				.addOption('DD-MM-YYYY', t('FMT_DAY_MONTH_YEAR'))
 				.setValue(this.plugin.settings.dateFormat)
 				.onChange(async (value) => {
 					this.plugin.settings.dateFormat = value as SimpleTasksBlocksSettings['dateFormat'];
@@ -568,7 +568,7 @@ class SimpleTasksBlocksSettingTab extends PluginSettingTab {
 
 		new Setting(containerEl)
 			.setName(t('SETTING_FUTURE_COUNT'))
-			.setDesc(t('SETTING_FUTURE_COUNT_DESC'))	
+			.setDesc(t('SETTING_FUTURE_COUNT_DESC'))
 			.addDropdown(dropdown => {
 				for (let i = 1; i <= 15; i++) {
 					dropdown.addOption(i.toString(), i.toString());
@@ -619,7 +619,7 @@ class TasksView extends ItemView {
 
 		const header = container.createEl('div', { cls: 'stb-header' });
 		const grid = header.createEl('div', { cls: 'stb-header-grid' });
-		
+
 		const leftPart = grid.createEl('div', { cls: 'stb-header-part-left' });
 		const switcher = leftPart.createEl('div', { cls: 'stb-context-switcher' });
 
@@ -664,7 +664,7 @@ class TasksView extends ItemView {
 		reloadBtn.setAttribute('aria-label', 'Reload');
 		const reloadIcon = reloadBtn.createEl('span', { cls: 'stb-btn-icon' });
 		setIcon(reloadIcon, 'refresh-cw');
-		
+
 		reloadBtn.addEventListener('click', () => {
 			reloadBtn.addClass('is-spinning');
 			setTimeout(() => {
@@ -672,8 +672,8 @@ class TasksView extends ItemView {
 				reloadBtn.removeClass('is-spinning');
 			}, 800);
 		});
-		
-		leftPart.createEl('span', { 
+
+		leftPart.createEl('span', {
 			text: this.plugin.settings.activeContext === 'shared' ? t('LABEL_SHARED') : t('LABEL_LOCAL'),
 			cls: 'stb-context-label'
 		});
@@ -682,7 +682,7 @@ class TasksView extends ItemView {
 		// Button moved to right part
 
 		const rightPart = grid.createEl('div', { cls: 'stb-header-part-right' });
-		
+
 		const addCategoryBtn = rightPart.createEl('button', { text: t('BTN_ADD_CAT'), cls: 'mod-cta' });
 		addCategoryBtn.addEventListener('click', () => {
 			new AddCategoryModal(this.app, (name, firstTask, date) => {
@@ -788,7 +788,7 @@ class TasksView extends ItemView {
 		});
 
 		const catHeader = catBlock.createEl('div', { cls: 'stb-category-header' });
-		
+
 		const dragHandle = catHeader.createEl('div', { cls: 'stb-drag-handle clickable-icon' });
 		setIcon(dragHandle, 'grip-vertical');
 
@@ -809,7 +809,7 @@ class TasksView extends ItemView {
 				}
 			});
 		});
-	
+
 		const addTaskHeaderBtn = catHeader.createEl('div', { cls: 'stb-cat-add-btn clickable-icon' });
 		setIcon(addTaskHeaderBtn, 'plus');
 		addTaskHeaderBtn.setAttribute('aria-label', t('TIP_ADD_TASK'));
@@ -846,16 +846,16 @@ class TasksView extends ItemView {
 			const showInput = () => {
 				inlineContainer.show();
 				inlineContainer.empty();
-				
+
 				const wrapper = inlineContainer.createEl('div', { cls: 'stb-inline-input-wrapper' });
 				wrapper.style.position = 'relative';
-				
+
 				const input = wrapper.createEl('input', { type: 'text', placeholder: t('INPUT_NEW_TASK') });
 				input.focus();
 
 				const dateBtn = wrapper.createEl('div', { cls: 'stb-inline-date-btn clickable-icon' });
 				setIcon(dateBtn, 'calendar');
-				
+
 				const dateInput = wrapper.createEl('input', { type: 'date', cls: 'stb-hidden-date-input' });
 				dateInput.hide();
 
@@ -872,7 +872,7 @@ class TasksView extends ItemView {
 						try { (dateInput as HTMLInputElement & { showPicker(): void }).showPicker(); } catch { dateInput.focus(); }
 					} else { dateInput.focus(); }
 				});
-				
+
 				dateInput.addEventListener('change', () => {
 					if (dateInput.value) {
 						dateBtn.addClass('has-date');
@@ -899,10 +899,10 @@ class TasksView extends ItemView {
 						inlineContainer.hide();
 					}
 				});
-				
+
 				input.addEventListener('blur', (e) => {
 					if (e.relatedTarget === dateInput || e.relatedTarget === dateBtn || wrapper.contains(e.relatedTarget as Node)) {
-						return; 
+						return;
 					}
 				});
 			};
@@ -933,186 +933,186 @@ class TasksView extends ItemView {
 		return dateStr;
 	}
 
-    renderTask(container: HTMLElement, category: Category, task: Task) {
-        const taskRow = container.createEl('div', { cls: 'stb-task-row' });
+	renderTask(container: HTMLElement, category: Category, task: Task) {
+		const taskRow = container.createEl('div', { cls: 'stb-task-row' });
 
-        const scratchpadBtn = taskRow.createEl('div', { cls: 'stb-scratchpad-btn clickable-icon' });
-        setIcon(scratchpadBtn, 'sticky-note');
-        if (task.scratchpad) scratchpadBtn.addClass('has-content');
-        
-        scratchpadBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            new ScratchpadModal(this.app, task.scratchpad || '', (newText) => {
-                if (newText !== task.scratchpad) {
-                    void this.plugin.updateTaskScratchpad(category.id, task.id, newText);
-                }
-            }).open();
-        });
+		const scratchpadBtn = taskRow.createEl('div', { cls: 'stb-scratchpad-btn clickable-icon' });
+		setIcon(scratchpadBtn, 'sticky-note');
+		if (task.scratchpad) scratchpadBtn.addClass('has-content');
 
-        const checkbox = taskRow.createEl('input', { type: 'checkbox' });
-        checkbox.checked = task.completed;
-        checkbox.addEventListener('change', () => {
-            void this.toggleTask(category.id, task.id, checkbox.checked);
-        });
+		scratchpadBtn.addEventListener('click', (e) => {
+			e.stopPropagation();
+			new ScratchpadModal(this.app, task.scratchpad || '', (newText) => {
+				if (newText !== task.scratchpad) {
+					void this.plugin.updateTaskScratchpad(category.id, task.id, newText);
+				}
+			}).open();
+		});
 
-        const taskText = taskRow.createEl('span', { cls: 'stb-task-text', text: task.text });
-        if (task.completed) taskText.addClass('is-completed');
-        taskText.addEventListener('click', (e) => {
-            e.stopPropagation();
-            this.makeEditable(taskText, async (newText) => {
-                if (newText && newText !== task.text) {
-                    task.text = newText;
-                    await this.plugin.saveSettings();
-                }
-            });
-        });
+		const checkbox = taskRow.createEl('input', { type: 'checkbox' });
+		checkbox.checked = task.completed;
+		checkbox.addEventListener('change', () => {
+			void this.toggleTask(category.id, task.id, checkbox.checked);
+		});
 
-        const rightActions = taskRow.createEl('div', { cls: 'stb-task-right-actions' });
+		const taskText = taskRow.createEl('span', { cls: 'stb-task-text', text: task.text });
+		if (task.completed) taskText.addClass('is-completed');
+		taskText.addEventListener('click', (e) => {
+			e.stopPropagation();
+			this.makeEditable(taskText, async (newText) => {
+				if (newText && newText !== task.text) {
+					task.text = newText;
+					await this.plugin.saveSettings();
+				}
+			});
+		});
 
-        if (task.dueDate) {
-            if (task.recurrenceType && task.recurrenceType !== 'none') {
-                const recurIcon = rightActions.createEl('div', { cls: 'stb-recurrence-icon clickable-icon' });
-                setIcon(recurIcon, 'calendar-cog');
-                
-                recurIcon.style.color = 'var(--text-accent)';
-                recurIcon.style.marginRight = '4px';
-                recurIcon.style.display = 'inline-flex';
-                recurIcon.style.alignItems = 'center';
+		const rightActions = taskRow.createEl('div', { cls: 'stb-task-right-actions' });
 
-                recurIcon.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    new FutureOccurrencesModal(this.app, task, this.plugin.settings.futureTasksCount, async (updatedTask) => {
-                        Object.assign(task, updatedTask);
-                        const categories = this.plugin.getCategories();
-                        const currentCat = categories.find(c => c.id === category.id);
-                        if (currentCat) {
-                            const currentTask = currentCat.tasks.find(t => t.id === task.id);
-                            if (currentTask) {
-                                Object.assign(currentTask, updatedTask);
-                                await this.plugin.saveCategories(categories);
-                            }
-                        } else {
-                            await this.plugin.saveCategories(categories); 
-                        }
-                        this.refresh();
-                    }).open();
-                });
-            }
+		if (task.dueDate) {
+			if (task.recurrenceType && task.recurrenceType !== 'none') {
+				const recurIcon = rightActions.createEl('div', { cls: 'stb-recurrence-icon clickable-icon' });
+				setIcon(recurIcon, 'calendar-cog');
 
-            const formattedDate = this.formatDate(task.dueDate);
-            const dateBadge = rightActions.createEl('span', { cls: 'stb-date-badge', text: formattedDate });
-            
-            const todayStr = window.moment().format('YYYY-MM-DD');
-            if (task.dueDate < todayStr) dateBadge.addClass('is-overdue');
-            else if (task.dueDate === todayStr) dateBadge.addClass('is-today');
-        }
+				recurIcon.style.color = 'var(--text-accent)';
+				recurIcon.style.marginRight = '4px';
+				recurIcon.style.display = 'inline-flex';
+				recurIcon.style.alignItems = 'center';
 
-        const dateEditBtn = rightActions.createEl('div', { cls: 'stb-task-date-btn clickable-icon' });
-        setIcon(dateEditBtn, 'calendar');
+				recurIcon.addEventListener('click', (e) => {
+					e.stopPropagation();
+					new FutureOccurrencesModal(this.app, task, this.plugin.settings.futureTasksCount, async (updatedTask) => {
+						Object.assign(task, updatedTask);
+						const categories = this.plugin.getCategories();
+						const currentCat = categories.find(c => c.id === category.id);
+						if (currentCat) {
+							const currentTask = currentCat.tasks.find(t => t.id === task.id);
+							if (currentTask) {
+								Object.assign(currentTask, updatedTask);
+								await this.plugin.saveCategories(categories);
+							}
+						} else {
+							await this.plugin.saveCategories(categories);
+						}
+						this.refresh();
+					}).open();
+				});
+			}
 
-        const deleteBtn = rightActions.createEl('div', { cls: 'stb-delete-task-btn clickable-icon' });
-        setIcon(deleteBtn, 'x');
-        deleteBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            if (this.plugin.settings.confirmTaskDeletion) {
-                new ConfirmModal(this.app, t('CONFIRM_DELETE_TASK'), async () => {
-                    await this.plugin.deleteTask(category.id, task.id, this.plugin.settings.activeContext === 'shared');
-                    this.refresh();
-                }).open();
-            } else {
-                void (async () => {
-                    await this.plugin.deleteTask(category.id, task.id, this.plugin.settings.activeContext === 'shared');
-                    this.refresh();
-                })();
-            }
-        });
+			const formattedDate = this.formatDate(task.dueDate);
+			const dateBadge = rightActions.createEl('span', { cls: 'stb-date-badge', text: formattedDate });
 
-        taskRow.addEventListener('contextmenu', (event: MouseEvent) => {
-            event.preventDefault();
-            const menu = new Menu();
-            menu.addItem((item) => {
-                item.setTitle(t('TIP_DUPLICATE')).setIcon("copy").onClick(() => {
-                    void this.plugin.duplicateTask(category.id, task.id);
-                });
-            });
-            menu.showAtPosition({ x: event.clientX, y: event.clientY });
-        });
+			const todayStr = window.moment().format('YYYY-MM-DD');
+			if (task.dueDate < todayStr) dateBadge.addClass('is-overdue');
+			else if (task.dueDate === todayStr) dateBadge.addClass('is-today');
+		}
 
-        dateEditBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            new TaskDateModal(this.app, task, async (updatedData) => {
-                Object.assign(task, updatedData);
-                const categories = this.plugin.getCategories();
-                const currentCat = categories.find(c => c.id === category.id);
-                if (currentCat) {
-                    const currentTask = currentCat.tasks.find(t => t.id === task.id);
-                    if (currentTask) {
-                        currentTask.dueDate = task.dueDate;
-                        currentTask.recurrenceType = task.recurrenceType;
-                        currentTask.recurrenceValue = task.recurrenceValue;
-                        currentTask.recurrenceUntil = task.recurrenceUntil;
-                        currentTask.recurrenceExdates = task.recurrenceExdates;
-                        await this.plugin.saveCategories(categories);
-                    }
-                }
-                this.refresh();
-            }).open();
-        });
-    }
+		const dateEditBtn = rightActions.createEl('div', { cls: 'stb-task-date-btn clickable-icon' });
+		setIcon(dateEditBtn, 'calendar');
 
-    makeEditable(element: HTMLElement, onSave: (text: string) => Promise<void>) {
-        const currentText = element.innerText;
-        element.empty();
-        const input = element.createEl('input', { 
-            type: 'text', 
-            value: currentText, 
-            cls: 'stb-inline-input' 
-        });
-        
-        input.focus();
-        input.addEventListener('click', (e) => e.stopPropagation());
+		const deleteBtn = rightActions.createEl('div', { cls: 'stb-delete-task-btn clickable-icon' });
+		setIcon(deleteBtn, 'x');
+		deleteBtn.addEventListener('click', (e) => {
+			e.stopPropagation();
+			if (this.plugin.settings.confirmTaskDeletion) {
+				new ConfirmModal(this.app, t('CONFIRM_DELETE_TASK'), async () => {
+					await this.plugin.deleteTask(category.id, task.id, this.plugin.settings.activeContext === 'shared');
+					this.refresh();
+				}).open();
+			} else {
+				void (async () => {
+					await this.plugin.deleteTask(category.id, task.id, this.plugin.settings.activeContext === 'shared');
+					this.refresh();
+				})();
+			}
+		});
 
-        const save = async () => {
-            const newText = input.value.trim();
-            if (!newText || newText === currentText) {
-                element.empty();
-                element.innerText = currentText;
-                return;
-            }
-            await onSave(newText);
-        };
+		taskRow.addEventListener('contextmenu', (event: MouseEvent) => {
+			event.preventDefault();
+			const menu = new Menu();
+			menu.addItem((item) => {
+				item.setTitle(t('TIP_DUPLICATE')).setIcon("copy").onClick(() => {
+					void this.plugin.duplicateTask(category.id, task.id);
+				});
+			});
+			menu.showAtPosition({ x: event.clientX, y: event.clientY });
+		});
 
-        input.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') void save();
-            if (e.key === 'Escape') this.refresh();
-        });
+		dateEditBtn.addEventListener('click', (e) => {
+			e.stopPropagation();
+			new TaskDateModal(this.app, task, async (updatedData) => {
+				Object.assign(task, updatedData);
+				const categories = this.plugin.getCategories();
+				const currentCat = categories.find(c => c.id === category.id);
+				if (currentCat) {
+					const currentTask = currentCat.tasks.find(t => t.id === task.id);
+					if (currentTask) {
+						currentTask.dueDate = task.dueDate;
+						currentTask.recurrenceType = task.recurrenceType;
+						currentTask.recurrenceValue = task.recurrenceValue;
+						currentTask.recurrenceUntil = task.recurrenceUntil;
+						currentTask.recurrenceExdates = task.recurrenceExdates;
+						await this.plugin.saveCategories(categories);
+					}
+				}
+				this.refresh();
+			}).open();
+		});
+	}
 
-        input.addEventListener('blur', () => void save());
-    }
+	makeEditable(element: HTMLElement, onSave: (text: string) => Promise<void>) {
+		const currentText = element.innerText;
+		element.empty();
+		const input = element.createEl('input', {
+			type: 'text',
+			value: currentText,
+			cls: 'stb-inline-input'
+		});
 
-    async sortCategoryTasks(categoryId: string) {
-        const categories = this.plugin.getCategories();
-        const category = categories.find(c => c.id === categoryId);
-        if (!category) return;
+		input.focus();
+		input.addEventListener('click', (e) => e.stopPropagation());
 
-        const currentOrder = category.lastSortOrder || 'desc';
-        const newOrder = currentOrder === 'asc' ? 'desc' : 'asc';
-        const todayStr = window.moment().format('YYYY-MM-DD');
+		const save = async () => {
+			const newText = input.value.trim();
+			if (!newText || newText === currentText) {
+				element.empty();
+				element.innerText = currentText;
+				return;
+			}
+			await onSave(newText);
+		};
 
-        category.tasks.sort((a, b) => {
-            const dateA = a.dueDate || todayStr;
-            const dateB = b.dueDate || todayStr;
-            if (dateA === dateB) return 0;
-            return newOrder === 'asc' ? (dateA < dateB ? -1 : 1) : (dateA > dateB ? -1 : 1);
-        });
+		input.addEventListener('keydown', (e) => {
+			if (e.key === 'Enter') void save();
+			if (e.key === 'Escape') this.refresh();
+		});
 
-        category.lastSortOrder = newOrder;
-        const isShared = this.plugin.settings.activeContext === 'shared';
-        await this.plugin.saveCategories(categories, isShared);
-        
-        this.refresh();
-        new Notice(`Sorted tasks ${newOrder === 'asc' ? 'ascending' : 'descending'}`);
-    }
+		input.addEventListener('blur', () => void save());
+	}
+
+	async sortCategoryTasks(categoryId: string) {
+		const categories = this.plugin.getCategories();
+		const category = categories.find(c => c.id === categoryId);
+		if (!category) return;
+
+		const currentOrder = category.lastSortOrder || 'desc';
+		const newOrder = currentOrder === 'asc' ? 'desc' : 'asc';
+		const todayStr = window.moment().format('YYYY-MM-DD');
+
+		category.tasks.sort((a, b) => {
+			const dateA = a.dueDate || todayStr;
+			const dateB = b.dueDate || todayStr;
+			if (dateA === dateB) return 0;
+			return newOrder === 'asc' ? (dateA < dateB ? -1 : 1) : (dateA > dateB ? -1 : 1);
+		});
+
+		category.lastSortOrder = newOrder;
+		const isShared = this.plugin.settings.activeContext === 'shared';
+		await this.plugin.saveCategories(categories, isShared);
+
+		this.refresh();
+		new Notice(`Sorted tasks ${newOrder === 'asc' ? 'ascending' : 'descending'}`);
+	}
 
 	async sortAllCategoriesAlphabetically() {
 		const categories = this.plugin.getCategories();
@@ -1180,7 +1180,7 @@ class TasksView extends ItemView {
 						}
 						loopGuard++;
 					}
-					
+
 					const finalNextDateStr = nextDate.format('YYYY-MM-DD');
 					let shouldRecur = true;
 					if (task.recurrenceUntil) {
@@ -1198,7 +1198,7 @@ class TasksView extends ItemView {
 				} else {
 					task.completed = completed;
 				}
-				
+
 				await this.plugin.saveCategories(categories);
 			}
 		}
@@ -1217,7 +1217,7 @@ class TasksView extends ItemView {
 		const categories = this.plugin.getCategories();
 		const anyOpen = categories.some(c => !c.isCollapsed);
 		categories.forEach(c => {
-			c.isCollapsed = anyOpen; 
+			c.isCollapsed = anyOpen;
 		});
 		await this.plugin.saveCategories(categories);
 	}
@@ -1265,7 +1265,7 @@ class AddCategoryModal extends Modal {
 			const name = nameInput.value.trim();
 			const task = taskInput.value.trim();
 			const date = dateInput.value;
-			
+
 			if (!name || !task) {
 				new Notice(t('ERR_REQUIRED'));
 				return;
@@ -1297,19 +1297,19 @@ class FutureOccurrencesModal extends Modal {
 	onOpen() {
 		const { contentEl } = this;
 		contentEl.createEl("h2", { text: t('MODAL_FUTURE_TITLE') });
-		
+
 		const listContainer = contentEl.createDiv({ cls: 'stb-future-list' });
-		
+
 		let nextDate = window.moment(this.task.dueDate || undefined);
 		if (!this.task.dueDate) nextDate = window.moment();
-		
+
 		const value = this.task.recurrenceValue || 1;
 		const exdates = this.task.recurrenceExdates || [];
-		
+
 		let found = 0;
 		let safety = 0;
 		const maxDisplay = this.count;
-		
+
 		while (found < maxDisplay && safety < 1000) {
 			switch (this.task.recurrenceType) {
 				case 'daily': nextDate.add(1, 'days'); break;
@@ -1317,32 +1317,32 @@ class FutureOccurrencesModal extends Modal {
 				case 'monthly': nextDate.add(1, 'months'); break;
 				case 'custom_days': nextDate.add(value, 'days'); break;
 			}
-			
+
 			const dateStr = nextDate.format('YYYY-MM-DD');
-			
+
 			if (this.task.recurrenceUntil && nextDate.isAfter(moment(this.task.recurrenceUntil))) {
 				break;
 			}
-			
+
 			if (exdates.includes(dateStr)) {
 				safety++;
 				continue;
 			}
-			
+
 			found++;
 			safety++;
-			
+
 			const row = listContainer.createDiv({ cls: 'stb-future-item' });
 			row.style.display = 'flex';
 			row.style.justifyContent = 'space-between';
 			row.style.alignItems = 'center';
 			row.style.padding = '8px 0';
 			row.style.borderBottom = '1px solid var(--background-modifier-border)';
-			
+
 			const dateText = nextDate.format('dddd LL');
 			const capitalizedDateText = dateText.charAt(0).toUpperCase() + dateText.slice(1);
 			row.createSpan({ text: capitalizedDateText });
-			
+
 			const deleteBtn = row.createDiv({ cls: 'clickable-icon' });
 			setIcon(deleteBtn, 'trash');
 			deleteBtn.setAttribute('aria-label', t('TIP_SKIP_TASK'));
@@ -1355,7 +1355,7 @@ class FutureOccurrencesModal extends Modal {
 				}).open();
 			});
 		}
-		
+
 		if (found === 0) {
 			listContainer.createDiv({ text: t('MSG_NO_FUTURE') });
 		}
@@ -1393,16 +1393,16 @@ class FutureOccurrencesModal extends Modal {
 				let typeText = t('UNIT_DAYS');
 				let displayValue = 1;
 
-				switch(this.task.recurrenceType) {
+				switch (this.task.recurrenceType) {
 					case 'daily': typeText = t('UNIT_DAYS'); break;
 					case 'weekly': typeText = t('UNIT_WEEKS'); break;
 					case 'monthly': typeText = t('UNIT_MONTHS'); break;
-					case 'custom_days': 
-						typeText = t('UNIT_DAYS'); 
+					case 'custom_days':
+						typeText = t('UNIT_DAYS');
 						displayValue = value;
 						break;
 				}
-				
+
 				footer.setText(t('MSG_REPEATED_EVERY', displayValue.toString(), typeText));
 			}
 		}
@@ -1501,7 +1501,7 @@ class TaskDateModal extends Modal {
 		this.displayCustomValueField(valueField, this.tempRecurType);
 
 		contentEl.createEl("h3", { text: t('FIELD_END_RECURRENCE'), cls: "stb-modal-h3" });
-		
+
 		const untilSetting = new Setting(contentEl)
 			.setName(t('FIELD_STOP_REPEATING'))
 			.addDropdown(dropdown => dropdown
@@ -1524,12 +1524,12 @@ class TaskDateModal extends Modal {
 				})
 				.inputEl.type = 'date'
 			);
-		
+
 		this.displayUntilField(untilDateField, this.tempUntilMode);
 
 		const buttonDiv = contentEl.createDiv({ cls: 'stb-modal-actions' });
 		buttonDiv.style.marginTop = '20px';
-		
+
 		const saveBtn = new Setting(buttonDiv)
 			.addButton(btn => btn
 				.setButtonText(t('BTN_SAVE'))
@@ -1561,7 +1561,7 @@ class TaskDateModal extends Modal {
 					this.close();
 				})
 			);
-			
+
 		saveBtn.settingEl.style.border = 'none';
 		saveBtn.settingEl.style.justifyContent = 'flex-end';
 	}
@@ -1603,12 +1603,12 @@ class ScratchpadModal extends Modal {
 		contentEl.addClass('stb-scratchpad-modal');
 		contentEl.createEl("h3", { text: t('MODAL_SCRATCHPAD_TITLE') });
 
-		const textarea = contentEl.createEl("textarea", { 
+		const textarea = contentEl.createEl("textarea", {
 			cls: 'stb-scratchpad-textarea',
-			text: this.initialText 
+			text: this.initialText
 		});
 		textarea.placeholder = t('FIELD_SCRATCHPAD_PLACEHOLDER');
-		
+
 		textarea.focus();
 		textarea.setSelectionRange(this.initialText.length, this.initialText.length);
 
@@ -1646,7 +1646,7 @@ class SharedSetupModal extends Modal {
 
 		const pathDiv = contentEl.createDiv({ cls: 'stb-modal-field' });
 		pathDiv.createEl("label", { text: t('FIELD_SHARED_PATH') });
-		
+
 		const pathInput = pathDiv.createEl("input", { type: "text" });
 		pathInput.value = this.plugin.settings.sharedFilePath || '';
 		pathInput.disabled = true;
@@ -1654,7 +1654,7 @@ class SharedSetupModal extends Modal {
 
 		const buttonDiv = contentEl.createDiv({ cls: 'stb-modal-actions' });
 		buttonDiv.style.marginTop = '10px';
-		
+
 		const browseBtn = buttonDiv.createEl("button", { text: t('BTN_BROWSE'), cls: "mod-cta" });
 		const createBtn = buttonDiv.createEl("button", { text: t('BTN_CREATE_NEW') });
 		const cancelBtn = buttonDiv.createEl("button", { text: t('BTN_CANCEL') });
@@ -1678,11 +1678,11 @@ class SharedSetupModal extends Modal {
 					const electron: any = await import('electron');
 					remote = electron.remote || (electron.default && electron.default.remote);
 				}
-				
+
 				if (!remote) {
 					throw new Error("Electron remote not available");
 				}
-				
+
 				const dialog = remote.dialog;
 				const result = await dialog.showOpenDialog({
 					properties: ['openFile'],
@@ -1697,11 +1697,11 @@ class SharedSetupModal extends Modal {
 				new Notice(t('ERR_PICKER'));
 				pathInput.disabled = false;
 				pathInput.focus();
-				
+
 				browseBtn.setText(t('BTN_SAVE_PATH'));
 				browseBtn.replaceWith(browseBtn.cloneNode(true));
 				const newSaveBtn = buttonDiv.querySelector("button.mod-cta") as HTMLButtonElement;
-				
+
 				newSaveBtn.addEventListener("click", async () => {
 					if (pathInput.value) {
 						await handleFileSelection(pathInput.value);
